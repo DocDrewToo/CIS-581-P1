@@ -3,7 +3,6 @@
 * Uses Poetry as the python virtual environment
 Insallation instructions: https://python-poetry.org/docs/
 
-
 Activating the venv  
 `poetry shell`
 
