@@ -1,6 +1,7 @@
 import numpy
 import os
 from sklearn.metrics import mean_squared_error
+from sklearn.preprocessing import PolynomialFeatures
 
 def seperate_data_to_x_y_arrays(input_data_file_name):
     x_axis = []
@@ -26,25 +27,38 @@ def fit_numpy(x_data, y_data):
     return(optimal_values)
 
 
-def fit_manual(x_data, y_data):
-    #Pad the 1st column with 1's, 2nd column are just the x values
-    X = numpy.c_[numpy.ones((x_data.shape[0], 1)), x_data]
+def fit_manual(x_data, y_data, _degree=1):
+    #Pad the 1st column with 1's, the rest depending on degree
+    # d=1 | 1 | x | 
+    # d=2 | 1 | x | x^2 |
+    x_reshaped = x_data.reshape(-1,1)
+    print("x re-shaped:", x_reshaped.shape)
+    polynomial_features = PolynomialFeatures(degree=_degree)
+    X = polynomial_features.fit_transform(x_reshaped)
 
     #Calculate optimal values for variables
-    # X_transpose = X.transpose()
-    # product_of_X_transpose_times_X = numpy.matmul(X_transpose, X)
-    # inverse_matrix = numpy.linalg.inv(product_of_X_transpose_times_X)
-    # product_of_inverse_times_X_transpose = numpy.matmul(inverse_matrix, X_transpose)
-    # optimal_values = numpy.matmul(product_of_inverse_times_X_transpose, y_data)
-
     optimal_values = numpy.linalg.inv((X.T @ X)) @ ( X.T @ y_data)
+    print("Optimal Values for degree:",_degree, optimal_values)
+    # optimal_intercept = round(optimal_values[0], 4)
+    # optimal_slope = round(optimal_values[1], 4)
 
-    optimal_intercept = round(optimal_values[0], 4)
-    optimal_slope = round(optimal_values[1], 4)
-
-    print("y = ",optimal_slope,"x +",optimal_intercept)
+    # print("y = ",optimal_slope,"x +",optimal_intercept)
 
     return(optimal_values)
+
+def fit_ridge_regression(x, y):
+    print("x shape initial:", x.shape)
+    # print("y Shape initial:", y.shape)
+    x_reshaped = x.reshape(-1,1)
+    print("x re-shaped:", x_reshaped.shape)
+
+
+    polynomial_features = PolynomialFeatures(degree=2)
+    X = polynomial_features.fit_transform(x_reshaped)
+    print("x shape after fit transform:", X.shape)
+    # print("y Shape after fit transform:", y.shape)
+
+    return True
 
 def calculate_loss(loss_function, x, y, hypothesis_constants):
     slope_m = float(hypothesis_constants[1])
@@ -77,10 +91,11 @@ data = "data/test.txt"
 # data = "data/deficit_train.dat"
 x_data, y_data = seperate_data_to_x_y_arrays(data)
 
-optimal_values = fit_manual(x_data, y_data)
+optimal_values = fit_manual(x_data, y_data, 2)
 # optimal_values = fit_numpy(x_data,y_data)
+# fit_ridge_regression(x_data, y_data)
 
-loss = calculate_loss("MSE", x_data ,y_data, optimal_values)
-print("Average loss (manual) using MSE",loss)
-loss = calculate_loss_scikit("MSE", x_data ,y_data, optimal_values)
-print("Average loss (scikit) using MSE",loss)
+# loss = calculate_loss("MSE", x_data ,y_data, optimal_values)
+# print("Average loss (manual) using MSE",loss)
+# loss = calculate_loss_scikit("MSE", x_data ,y_data, optimal_values)
+# print("Average loss (scikit) using MSE",loss)
