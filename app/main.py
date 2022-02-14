@@ -1,9 +1,14 @@
 import numpy
 import os
 from sklearn.metrics import mean_squared_error
-from sklearn.preprocessing import PolynomialFeatures
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+import pandas
+import matplotlib.pyplot as pyplot
+from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
 
-def seperate_data_to_x_y_arrays(input_data_file_name):
+def seperate_data_to_x_y_arrays(input_data_file_name):    
     x_axis = []
     y_axis = []
     with open(input_data_file_name) as input_data_object:
@@ -28,11 +33,13 @@ def fit_numpy(x_data, y_data):
 
 
 def fit_manual(x_data, y_data, _degree=1):
+
     #Pad the 1st column with 1's, the rest depending on degree
     # d=1 | 1 | x | 
     # d=2 | 1 | x | x^2 |
     x_reshaped = x_data.reshape(-1,1)
     print("x re-shaped:", x_reshaped.shape)
+
     polynomial_features = PolynomialFeatures(degree=_degree)
     X = polynomial_features.fit_transform(x_reshaped)
 
@@ -46,19 +53,13 @@ def fit_manual(x_data, y_data, _degree=1):
 
     return(optimal_values)
 
-def fit_ridge_regression(x, y):
-    print("x shape initial:", x.shape)
-    # print("y Shape initial:", y.shape)
+def matrix_x_with_degree_d(x, _degree=1):
     x_reshaped = x.reshape(-1,1)
-    print("x re-shaped:", x_reshaped.shape)
 
-
-    polynomial_features = PolynomialFeatures(degree=2)
+    polynomial_features = PolynomialFeatures(degree=_degree)
     X = polynomial_features.fit_transform(x_reshaped)
-    print("x shape after fit transform:", X.shape)
-    # print("y Shape after fit transform:", y.shape)
 
-    return True
+    return X
 
 def calculate_loss(loss_function, x, y, hypothesis_constants):
     slope_m = float(hypothesis_constants[1])
@@ -90,10 +91,34 @@ def calculate_loss_scikit(loss_function, x, y, hypothesis_constants):
 data = "data/test.txt"
 # data = "data/deficit_train.dat"
 x_data, y_data = seperate_data_to_x_y_arrays(data)
+x_test = []
+y_test =[]
+ridge_regression = Ridge(solver='lsqr')
+params = {'alpha':[1e-25,1e-20,1e-14,1e-7,1e-3,1e3,1e7]}
 
-optimal_values = fit_manual(x_data, y_data, 2)
+# for degree in range(2,3):
+#     pipe = Pipeline(steps=[
+#         ('scaler', StandardScaler()),
+#         ('preprocessor', PolynomialFeatures(degree=degree, include_bias=False)),
+#         ('estimator', GridSearchCV(ridge_regression,params,scoring='neg_root_mean_squared_error',cv=2)),
+#         ('scoring', "neg_root_mean_squared_error")
+#     ])
+#     pipe.fit(x_data, y_data)
+#     y_pred_train_pipe = pipe.predict(x_data)
+#     print(y_pred_train_pipe[:5])
+
+Regressor = GridSearchCV(ridge_regression, params, scoring="neg_mean_squared_error", cv=2)
+x_matrix_degree_d = matrix_x_with_degree_d(x_data, 2)
+fit = Regressor.fit(x_matrix_degree_d,y_data)
+predictions = Regressor.predict(x_data.reshape(-1, 1))
+print(predictions)
+
+    # print('best parameter: ', Regressor.best_params_)
+    # print('best score: ', -Regressor.best_score_)
+
+# optimal_values = fit_manual(x_data, y_data, 2)
 # optimal_values = fit_numpy(x_data,y_data)
-# fit_ridge_regression(x_data, y_data)
+
 
 # loss = calculate_loss("MSE", x_data ,y_data, optimal_values)
 # print("Average loss (manual) using MSE",loss)
