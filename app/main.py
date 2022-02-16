@@ -23,7 +23,8 @@ def seperate_data_to_x_y_arrays(input_data_file_name):
 
 
 def fit_numpy(x_data, y_data):
-    optimal_values = numpy.polyfit(x_data, y_data, 2)
+    degree = 2
+    optimal_values = numpy.polyfit(x_data, y_data, degree)
 
     optimal_intercept = round(optimal_values[0], 4)
     optimal_slope = round(optimal_values[1], 4)
