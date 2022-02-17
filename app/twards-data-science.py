@@ -2,6 +2,8 @@ from re import X
 import numpy
 from scipy.linalg import lstsq
 from sklearn.preprocessing import PolynomialFeatures
+from scipy.special import factorial
+from itertools import combinations_with_replacement
 
 
 def x_data_in_polynomial_matrix(x_data, _degree):
@@ -11,8 +13,35 @@ def x_data_in_polynomial_matrix(x_data, _degree):
     return X
 
 
-def transform(x_data):
+def features_output(x_degree_matrix, _degree):
+    n_intput_features = x_degree_matrix.shape[1]
+    numerator = factorial(n_intput_features + _degree)
+    denominator = factorial(_degree) * factorial(n_intput_features)
+    n_output_features = int(numerator / denominator) - 1
+    return n_output_features
+
+
+def transform(output_features, x_data, _degree):
+    #Transform the data into a polynomial feature matrix
+    input_features = x_data.shape[1]
+    # combinations of feature indices stored in tuples
+    combos = [combinations_with_replacement(range(input_features), index) 
+        for index in range(1, _degree + 1)]
     
+    combinations = [item for sublist in combos for item in sublist]
+    x_new = numpy.empty((x_data.shape[0], output_features))
+    for index, index_combos in enumerate(combinations):
+        x_new[:, index] = numpy.prod(x_data[:, index_combos], axis=1)
+    
+    return x_new
+
+def regularization_term(my_lambda, weights):
+    my_lambda * 0.5 * numpy.linalg.norm(weights, 2)
+
+def gradient_descent_bias(weights, _lambda):
+    penalty = numpy.asarray(_lambda) * weights
+    bias = numpy.insert(penalty, 0, 0, axis=0)
+    return bias
 
 
 def fit(X, y, solver):
@@ -46,8 +75,19 @@ data = "data/test.txt"
 # data = "data/deficit_train.dat"
 x_data, y_data = seperate_data_to_x_y_arrays(data)
 degree = 2
-transform(x_data)
 x_matrix = x_data_in_polynomial_matrix(x_data, degree)
-coeficients, _, _, _ = fit(x_matrix, y_data, "lstsq")
-hypothesis = predict(coeficients, x_matrix)
-print(hypothesis)
+output_features = features_output(x_matrix, degree)
+x_transform = transform(output_features, x_matrix, degree)
+
+"""
+    Minimizes the cost fuction:
+        J(w) = MSE(w) + alpha * 1/2 * ||w||^2
+"""
+my_lambda = [0, 1e-25, 1e-20, 1e-14, 1e-7, 1e-3, 1, 1e3, 1e7]
+n_iterations = 1000
+lr = 1e-1 # Learning rate determining the size of steps in batch gradient descent
+regularization_term(my_lambda)
+gradient_descent_bias(weights, my_lambda)
+# coeficients, _, _, _ = fit(x_matrix, y_data, "lstsq")
+# hypothesis = predict(coeficients, x_matrix)
+# print(hypothesis)
