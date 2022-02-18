@@ -62,7 +62,7 @@ def fit(X, y, solver):
     # y : array-like of shape (n_samples, 1)
     if solver == 'lstsq':
         coefecients, residues, rank, singular = lstsq(X,y)
-    if solver == 'ridge':
+    # if solver == 'ridge':
         
     return coefecients, residues, rank, singular 
 

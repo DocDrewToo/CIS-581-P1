@@ -25,11 +25,18 @@ def fit(X, y, _lambda = 0):
     iota = numpy.identity(X.shape[1])
     left_matrix = numpy.linalg.inv(X.T @ X + _lambda * iota)
     right_matrix = X.T @ y
-    coefficients = left_matrix @ right_matrix
-    return coefficients
+    weights = left_matrix @ right_matrix
+    return weights
+
+
+def predict(X, weights):
+    y_predicted = X @ weights
+    return y_predicted
+
 
 data = "data/test.txt"
 x_numpy, y_numpy = read_data_to_x_y_arrays(data)
-degree = 1
+degree = 2
 x_features = x_data_in_polynomial_matrix(x_numpy, degree)
-coefficients = (x_features, y_numpy)
+weights = fit(x_features, y_numpy)
+y_predicted = predict(x_features, weights)
