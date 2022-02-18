@@ -1,5 +1,7 @@
 import numpy
 from sklearn.preprocessing import PolynomialFeatures
+import matplotlib.pyplot as plot
+
 
 def read_data_to_x_y_arrays(input_data_file_name):    
     x_axis = []
@@ -22,6 +24,7 @@ def x_data_in_polynomial_matrix(x_numpy, _degree):
     return X
 
 def fit(X, y, _lambda = 0):
+    #https://www.kaggle.com/residentmario/ridge-regression-proof-and-implementation/notebook
     iota = numpy.identity(X.shape[1])
     left_matrix = numpy.linalg.inv(X.T @ X + _lambda * iota)
     right_matrix = X.T @ y
@@ -34,9 +37,21 @@ def predict(X, weights):
     return y_predicted
 
 
+def plot_this(x, y, y_plot, _degree):
+    # Raw Data
+    plot.style.use('fivethirtyeight')
+    plot.scatter(x, y, color='black')
+    # plot.title("Stuff")
+    # Polynomial from predictions
+    curve = numpy.polyfit(x, y_plot, _degree) 
+    poly = numpy.poly1d(curve)   
+    plot.plot(x, y_plot,)
+    plot.show()
+
 data = "data/test.txt"
 x_numpy, y_numpy = read_data_to_x_y_arrays(data)
 degree = 2
 x_features = x_data_in_polynomial_matrix(x_numpy, degree)
 weights = fit(x_features, y_numpy)
 y_predicted = predict(x_features, weights)
+# plot_this(x_numpy, y_numpy, y_predicted, degree)
