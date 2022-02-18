@@ -1,7 +1,8 @@
 import numpy
 from sklearn.preprocessing import PolynomialFeatures
 import matplotlib.pyplot as plot
-
+from sklearn.metrics import mean_squared_error
+import math
 
 def read_data_to_x_y_arrays(input_data_file_name):    
     x_axis = []
@@ -37,6 +38,12 @@ def predict(X, weights):
     return y_predicted
 
 
+def root_mean_square_error(y_orig, y_predicted):
+    mse = mean_squared_error(y_orig, y_predicted)
+    rmse = math.sqrt(mse)
+    return rmse
+
+
 def plot_this(x, y, y_plot, _degree):
     # Raw Data
     plot.style.use('fivethirtyeight')
@@ -50,8 +57,12 @@ def plot_this(x, y, y_plot, _degree):
 
 data = "data/test.txt"
 x_numpy, y_numpy = read_data_to_x_y_arrays(data)
-degree = 2
-x_features = x_data_in_polynomial_matrix(x_numpy, degree)
-weights = fit(x_features, y_numpy)
-y_predicted = predict(x_features, weights)
+# degree = 1
+for degree in range(13):
+    print("For degree:", degree)
+    x_features = x_data_in_polynomial_matrix(x_numpy, degree)
+    weights = fit(x_features, y_numpy)
+    y_predicted = predict(x_features, weights)
+    error = root_mean_square_error(y_numpy, y_predicted)
+    print("Error (rmse)", error)
 # plot_this(x_numpy, y_numpy, y_predicted, degree)
