@@ -1,3 +1,4 @@
+from operator import index
 import numpy
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 import matplotlib.pyplot as plot
@@ -86,6 +87,12 @@ def un_normalize(_data, scalar):
     un_normalized_data = scalar.inverse_transform(_data)
     return un_normalized_data
 
+def indexes_of_data(data, start_index):
+    indexes = []
+    for items in range(data.size):
+        indexes.append(items + start_index)
+    return indexes
+
 training_dataset = "data/deficit_train.dat"
 validation_dataset = "data/deficit_test.dat"
 
@@ -95,7 +102,7 @@ validation_x , validation_y = read_data_to_x_y_arrays(validation_dataset)
 training_x_scalar, training_x_normalized = normalize(training_x)
 training_y_scalar, training_y_normalized = normalize(training_y)
 validation_x_scalar, validation_x_normalized = normalize(validation_x)
-validation_y_scalar, validation_y_normalzied = normalize(validation_y)
+validation_y_scalar, validation_y_normalized = normalize(validation_y)
 
 folds = 6 # Split the training data into folds to use as mini testing data
 my_lambda = [0, math.exp(-25), math.exp(-20), math.exp(-14),
@@ -105,20 +112,17 @@ for degree in range(13):
     print("For degree:", degree)
     for _lambda in my_lambda:
 
-        hold_outs_x , hold_outs_y = seperate_to_folds(normalized_training_x, training_y, folds)
+        hold_outs_x , hold_outs_y = seperate_to_folds(training_x_normalized, training_y_normalized, folds)
         for fold_n, hold_out_test_x  in enumerate(hold_outs_x):
             # Remove the hold_out[index] test data from the overall training data set
             # training_data_x = numpy.setdiff1d(training_x, hold_out_test_x)
 
-            indexes_to_del = []
-            for items in range(hold_out_test_x.size):
-                start_index = fold_n * folds
-                indexes_to_del.append(items + start_index)
+            indexes_to_del = indexes_of_data(hold_out_test_x, fold_n * folds)
             
-            training_data_x = numpy.delete(training_x, indexes_to_del)
-            training_data_y = numpy.delete(training_y, indexes_to_del)
-            training_x_features = x_data_in_polynomial_matrix(training_data_x, degree)
-            weights = fit(training_x_features, training_data_y, _lambda)
+            training_data_x = numpy.delete(training_x_normalized, indexes_to_del)
+            training_data_y = numpy.delete(training_y_normalized, indexes_to_del)
+            training_x_features = x_data_in_polynomial_matrix(training_x_normalized, degree)
+            weights = fit(training_x_features, training_y_normalized, _lambda)
 
             # cv_test_data_x , cv_test_data_y =
             hold_out_data_x_features =  x_data_in_polynomial_matrix(hold_out_test_x, degree)
@@ -126,4 +130,4 @@ for degree in range(13):
             error = root_mean_square_error(hold_outs_y[fold_n], y_predicted)
         
             print("For lambda:", _lambda, "Error (rmse)", error)
-            plot_this(validation_x, validation_y, weights, degree)
+            plot_this(hold_out_test_x, hold_outs_y[fold_n], weights, degree)
