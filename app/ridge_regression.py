@@ -44,25 +44,34 @@ def root_mean_square_error(y_orig, y_predicted):
     return rmse
 
 
-def plot_this(x, y, y_plot, _degree):
+def plot_this(x, y, weights, _degree):
     # Raw Data
     plot.style.use('fivethirtyeight')
     plot.scatter(x, y, color='black')
     # plot.title("Stuff")
-    # Polynomial from predictions
-    curve = numpy.polyfit(x, y_plot, _degree) 
-    poly = numpy.poly1d(curve)   
-    plot.plot(x, y_plot,)
+    min_x = numpy.amin(x)
+    max_x = numpy.amax(x)
+    num_of_x = x.size
+    lots_of_xs = numpy.linspace(min_x, max_x)
+    # lots_of_xs_numpy = numpy.array(lots_of_xs, dtype="int")
+    lots_of_xs_matrix = x_data_in_polynomial_matrix(lots_of_xs, _degree)
+    y_predicted = predict(lots_of_xs_matrix, weights)
+    plot.plot(lots_of_xs, y_predicted)
     plot.show()
 
+
 data = "data/test.txt"
+my_lambda = [0, math.exp(-25), math.exp(-20), math.exp(-14),
+ math.exp(-7), math.exp(-3), 1, math.exp(3), math.exp(7)]
+
 x_numpy, y_numpy = read_data_to_x_y_arrays(data)
 # degree = 1
-for degree in range(13):
+for degree in range(3):
     print("For degree:", degree)
     x_features = x_data_in_polynomial_matrix(x_numpy, degree)
-    weights = fit(x_features, y_numpy)
-    y_predicted = predict(x_features, weights)
-    error = root_mean_square_error(y_numpy, y_predicted)
-    print("Error (rmse)", error)
-# plot_this(x_numpy, y_numpy, y_predicted, degree)
+    for _lambda in my_lambda:
+        weights = fit(x_features, y_numpy, _lambda)
+        y_predicted = predict(x_features, weights)
+        error = root_mean_square_error(y_numpy, y_predicted)
+        print("For lambda:", _lambda, "Error (rmse)", error)
+        plot_this(x_numpy, y_numpy, weights, degree)
