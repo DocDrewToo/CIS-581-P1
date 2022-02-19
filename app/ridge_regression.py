@@ -24,6 +24,13 @@ def x_data_in_polynomial_matrix(x_numpy, _degree):
     X = polynomial_features.fit_transform(x_reshaped)
     return X
 
+
+def seperate_to_folds(x, y, num_sections):
+    x_array_of_arrays = numpy.array_split(x, num_sections)
+    y_array_of_arrays = numpy.array_split(y, num_sections)
+    return x_array_of_arrays, y_array_of_arrays
+
+
 def fit(X, y, _lambda = 0):
     #https://www.kaggle.com/residentmario/ridge-regression-proof-and-implementation/notebook
     iota = numpy.identity(X.shape[1])
@@ -60,18 +67,32 @@ def plot_this(x, y, weights, _degree):
     plot.show()
 
 
-data = "data/test.txt"
+training_dataset = "data/deficit_train.dat"
+validation_dataset = "data/deficit_test.dat"
+
+training_x , training_y = read_data_to_x_y_arrays(training_dataset)
+validation_x , validation_y = read_data_to_x_y_arrays(validation_dataset)
+
+folds = 6 # Split the training data into folds to use as mini testing data
 my_lambda = [0, math.exp(-25), math.exp(-20), math.exp(-14),
  math.exp(-7), math.exp(-3), 1, math.exp(3), math.exp(7)]
 
-x_numpy, y_numpy = read_data_to_x_y_arrays(data)
-# degree = 1
-for degree in range(3):
+for degree in range(13):
     print("For degree:", degree)
-    x_features = x_data_in_polynomial_matrix(x_numpy, degree)
     for _lambda in my_lambda:
-        weights = fit(x_features, y_numpy, _lambda)
-        y_predicted = predict(x_features, weights)
-        error = root_mean_square_error(y_numpy, y_predicted)
-        print("For lambda:", _lambda, "Error (rmse)", error)
-        plot_this(x_numpy, y_numpy, weights, degree)
+
+        hold_outs_x , hold_outs_y = seperate_to_folds(training_x, training_y, folds)
+        for fold_n, hold_out_test_x  in enumerate(hold_outs_x):
+            # Remove the hold_out[index] test data from the overall training data set
+            training_data_x = numpy.setdiff1d(training_x, hold_out_test_x)
+            training_data_y = numpy.setdiff1d(training_y, hold_outs_y[fold_n])
+            training_x_features = x_data_in_polynomial_matrix(training_data_x, degree)
+            weights = fit(training_x_features, training_data_y, _lambda)
+
+            # cv_test_data_x , cv_test_data_y =
+            hold_out_data_x_features =  x_data_in_polynomial_matrix(hold_out_test_x, degree)
+            y_predicted = predict(hold_out_data_x_features, weights)
+            error = root_mean_square_error(hold_outs_y[fold_n], y_predicted)
+        
+            print("For lambda:", _lambda, "Error (rmse)", error)
+            plot_this(validation_x, validation_y, weights, degree)
