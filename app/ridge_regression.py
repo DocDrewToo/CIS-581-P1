@@ -67,15 +67,20 @@ def plot_this(x, y, weights, _degree):
     plot.show()
 
 
-def normalize(_data):
+def normalize(_data, type="int"):
     scaler = StandardScaler()
     scaler.fit(_data.reshape(-1, 1))
     normalized_data = scaler.transform(_data.reshape(-1, 1))
 
-    average = numpy.average(normalized_data)
-    standard_deviation = numpy.std(normalized_data)
+    normal_array = []
+    for value in normalized_data:
+        normal_array.append(value[0])
+    single_numpy_array = numpy.array(normal_array)
 
-    return scaler, normalized_data
+    average = numpy.average(single_numpy_array)
+    standard_deviation = numpy.std(single_numpy_array)
+
+    return scaler, single_numpy_array
 
 def un_normalize(_data, scalar):
     un_normalized_data = scalar.inverse_transform(_data)
@@ -87,15 +92,14 @@ validation_dataset = "data/deficit_test.dat"
 training_x , training_y = read_data_to_x_y_arrays(training_dataset)
 validation_x , validation_y = read_data_to_x_y_arrays(validation_dataset)
 
-normalized_training_x = normalize(training_x)
+training_x_scalar, training_x_normalized = normalize(training_x)
+training_y_scalar, training_y_normalized = normalize(training_y)
+validation_x_scalar, validation_x_normalized = normalize(validation_x)
+validation_y_scalar, validation_y_normalzied = normalize(validation_y)
 
-# is_this_an_array = numpy.asanyarray(normalized_training_x_y)
-
-
-# Split the training data into folds to use as mini testing data
-folds = 6
+folds = 6 # Split the training data into folds to use as mini testing data
 my_lambda = [0, math.exp(-25), math.exp(-20), math.exp(-14),
- math.exp(-7), math.exp(-3), 1, math.exp(3), math.exp(7)]
+   math.exp(-7), math.exp(-3), 1, math.exp(3), math.exp(7)]
 
 for degree in range(13):
     print("For degree:", degree)
