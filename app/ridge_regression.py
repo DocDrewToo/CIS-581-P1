@@ -38,10 +38,10 @@ def seperate_to_folds(x, y, num_sections):
     return x_array_of_arrays, y_array_of_arrays
 
 
-def fit(x_1_dimension, y, degree, _lambda = 0):
+def fit(x_1_dimension, y, _degree, _lambda = 0):
     #https://www.kaggle.com/residentmario/ridge-regression-proof-and-implementation/notebook
 
-    X = x_data_in_polynomial_matrix(x_1_dimension, degree)          
+    X = x_data_in_polynomial_matrix(x_1_dimension, _degree)          
 
     iota = numpy.identity(X.shape[1])
     left_matrix = numpy.linalg.inv(X.T @ X + _lambda * iota)
@@ -50,8 +50,8 @@ def fit(x_1_dimension, y, degree, _lambda = 0):
     return hypothesis
 
 
-def predict(x_1_dimension, hypothesis):
-    X = x_data_in_polynomial_matrix(x_1_dimension, degree)          
+def predict(x_1_dimension, hypothesis, _degree):
+    X = x_data_in_polynomial_matrix(x_1_dimension, _degree)          
 
     y_predicted = X @ hypothesis
     return y_predicted
@@ -63,13 +63,13 @@ def root_mean_square_error(y_orig, y_predicted):
     return rmse
 
 
-def plot_this(actual_x, actual_y, curve_x, predeticted_y, degree):
+def plot_this(actual_x, actual_y, curve_x, predeticted_curve_y, _degree):
     # Raw Data
     plot.style.use('fivethirtyeight')
+    plot.title("Degree:" + str(_degree))
     plot.scatter(actual_x, actual_y, color='black')
-    plot.title("Degree:" + str(degree))
 
-    plot.plot(curve_x, predeticted_y)
+    plot.plot(curve_x, predeticted_curve_y)
     plot.show()
 
 
@@ -105,20 +105,40 @@ def indexes_of_data(data, start_index):
     return indexes
 
 
-def best_algorithm_from_results(_totals):
-    numpy_array_of_totals = numpy.array(_totals)
-    min_error = numpy.amin(numpy_array_of_totals, axis=0)[2]
-    min_error_column = numpy_array_of_totals[:,2]
-    indexes_of_minimums = numpy.where(min_error_column == min_error)
-    print("The Winner!", numpy_array_of_totals[indexes_of_minimums])
+def lowest_error(_totals):
+    numpy_array_of_totals = numpy.array(_totals, dtype=object)
+    error_column = numpy_array_of_totals[:,2]
+    min_error = numpy.amin(error_column, axis=0)
+
+    indexes_of_minimums = numpy.where(error_column == min_error)
     return numpy_array_of_totals[indexes_of_minimums]
 
-def error_on_test_data(x, y, x_scalar, y_scalar, best_altorithm):
-    degree = best_altorithm[0]
-    _lambda = best_algorithm[1]
-    hypothesis = best_altorithm[3]
-    y_predicted = predict(x, hypothesis)
-    error = root_mean_square_error(un_normalize_hold_out_y, un_normalize_y_predicted)
+
+def lowest_error_per_degree(_totals, _degree):
+    numpy_array_of_totals = numpy.array(_totals, dtype=object)
+    degree_column = numpy_array_of_totals[:,0]
+    indexes_of_degree = numpy.where(degree_column == _degree)
+    degree_n_matrix = numpy_array_of_totals[indexes_of_degree]
+    values_for_lowest_error = lowest_error(degree_n_matrix)
+    return values_for_lowest_error
+
+
+def error_on_test_data(x, y, x_scalar, y_scalar, best_algorithm):
+    _degree = best_algorithm[0][0]
+    # _lambda = best_algorithm[0][1]
+    hypothesis = best_algorithm[0][3]
+    y_predicted = predict(x, hypothesis, _degree)
+
+    x_un_normalized = un_normalize(x, x_scalar)
+    y_predicted_un_normalized = un_normalize(y_predicted, y_scalar)
+    y_un_normalized = un_normalize(y, y_scalar)
+    error = root_mean_square_error(y_un_normalized, y_predicted_un_normalized)
+
+    plot_data_y_predicted = predict(plot_data_x_normalized, hypothesis, _degree)
+    plot_data_y_predicted_un_normalized = un_normalize(plot_data_y_predicted, y_scalar)
+    plot_this(x_un_normalized, y_un_normalized, 
+          plot_data_x, plot_data_y_predicted_un_normalized, _degree)
+    return error
 
 
 training_dataset = "data/deficit_train.dat"
@@ -157,25 +177,30 @@ for degree in range(13):
             training_data_y = numpy.delete(training_y_normalized, indexes_to_del)
 
             hypothesis = fit(training_data_x, training_data_y, degree, _lambda)
-            y_predicted = predict(hold_out_test_x, hypothesis)
+            y_predicted = predict(hold_out_test_x, hypothesis, degree)
 
             un_normalize_hold_out_x = un_normalize(hold_out_test_x, training_x_scalar)
             un_normalize_hold_out_y = un_normalize(hold_outs_y[fold_n], training_y_scalar)
             un_normalize_y_predicted = un_normalize(y_predicted, training_y_scalar)
             error = root_mean_square_error(un_normalize_hold_out_y, un_normalize_y_predicted)
             average_error_list.append(error)
-
-            plot_data_y_predicted = predict(plot_data_x_normalized, hypothesis)
-            plot_data_y_predicted_un_normalized = un_normalize(plot_data_y_predicted, training_y_scalar)
-            # plot_this(un_normalize_hold_out_x, un_normalize_hold_out_y, 
-            #           plot_data_x, plot_data_y_predicted_un_normalized, degree)
-
+   
+        hypothesis = fit(training_x_normalized, training_y_normalized, degree, _lambda)
         average_error = sum(average_error_list) / len(average_error_list)
         totals.append([degree, _lambda, average_error, hypothesis])
 
-    # plot_this(un_normalize_hold_out_x, un_normalize_hold_out_y, hypothesis, degree)
+    best_lambda_hypothesis = lowest_error_per_degree(totals, degree)
+    hypotheses_for_this_lambda = best_lambda_hypothesis[0][3]
+    plot_data_y_predicted = predict(plot_data_x_normalized, hypotheses_for_this_lambda, degree)
+    plot_data_y_predicted_un_normalized = un_normalize(plot_data_y_predicted, training_y_scalar)
+    # plot_this(un_normalize_hold_out_x, un_normalize_hold_out_y, 
+    #           plot_data_x, plot_data_y_predicted_un_normalized, degree)
+    plot_this(un_normalize_hold_out_x, un_normalize_hold_out_y, hypotheses_for_this_lambda, degree)
 
-best_algorithm = best_algorithm_from_results(totals)
+lowest_overall_error = lowest_error(totals)
+print("The Winner!", lowest_overall_error)
 
-error_on_test_data(validation_x_normalized, validation_y_normalized, 
-                   validation_x_scalar, validation_y_scalar, best_algorithm)
+testing_error = error_on_test_data(validation_x_normalized, validation_y_normalized, 
+                   validation_x_scalar, validation_y_scalar, lowest_error)
+
+print("Error on test data:", testing_error)
