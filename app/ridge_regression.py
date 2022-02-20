@@ -18,6 +18,12 @@ def read_data_to_x_y_arrays(input_data_file_name):
     y_data_numpy = numpy.array(y_axis, dtype="float")
     return x_data_numpy, y_data_numpy
 
+def data_for_hypothesis_curve(data):
+    min_x = numpy.amin(data)
+    max_x = numpy.amax(data)
+    num_of_xs = data.size
+    lots_of_xs = numpy.linspace(min_x, max_x)
+    return lots_of_xs
 
 def x_data_in_polynomial_matrix(x_numpy, _degree):
     x_reshaped = x_numpy.reshape(-1,1)
@@ -32,17 +38,22 @@ def seperate_to_folds(x, y, num_sections):
     return x_array_of_arrays, y_array_of_arrays
 
 
-def fit(X, y, _lambda = 0):
+def fit(x_1_dimension, y, degree, _lambda = 0):
     #https://www.kaggle.com/residentmario/ridge-regression-proof-and-implementation/notebook
+
+    X = x_data_in_polynomial_matrix(x_1_dimension, degree)          
+
     iota = numpy.identity(X.shape[1])
     left_matrix = numpy.linalg.inv(X.T @ X + _lambda * iota)
     right_matrix = X.T @ y
-    weights = left_matrix @ right_matrix
-    return weights
+    hypothesis = left_matrix @ right_matrix
+    return hypothesis
 
 
-def predict(X, weights):
-    y_predicted = X @ weights
+def predict(x_1_dimension, hypothesis):
+    X = x_data_in_polynomial_matrix(x_1_dimension, degree)          
+
+    y_predicted = X @ hypothesis
     return y_predicted
 
 
@@ -52,19 +63,13 @@ def root_mean_square_error(y_orig, y_predicted):
     return rmse
 
 
-def plot_this(x, y, weights, _degree):
+def plot_this(actual_x, actual_y, curve_x, predeticted_y, degree):
     # Raw Data
     plot.style.use('fivethirtyeight')
-    plot.scatter(x, y, color='black')
-    # plot.title("Stuff")
-    min_x = numpy.amin(x)
-    max_x = numpy.amax(x)
-    num_of_x = x.size
-    lots_of_xs = numpy.linspace(min_x, max_x)
-    # lots_of_xs_numpy = numpy.array(lots_of_xs, dtype="int")
-    lots_of_xs_matrix = x_data_in_polynomial_matrix(lots_of_xs, _degree)
-    y_predicted = predict(lots_of_xs_matrix, weights)
-    plot.plot(lots_of_xs, y_predicted)
+    plot.scatter(actual_x, actual_y, color='black')
+    plot.title("Degree:" + str(degree))
+
+    plot.plot(curve_x, predeticted_y)
     plot.show()
 
 
@@ -99,6 +104,23 @@ def indexes_of_data(data, start_index):
         indexes.append(items + start_index)
     return indexes
 
+
+def best_algorithm_from_results(_totals):
+    numpy_array_of_totals = numpy.array(_totals)
+    min_error = numpy.amin(numpy_array_of_totals, axis=0)[2]
+    min_error_column = numpy_array_of_totals[:,2]
+    indexes_of_minimums = numpy.where(min_error_column == min_error)
+    print("The Winner!", numpy_array_of_totals[indexes_of_minimums])
+    return numpy_array_of_totals[indexes_of_minimums]
+
+def error_on_test_data(x, y, x_scalar, y_scalar, best_altorithm):
+    degree = best_altorithm[0]
+    _lambda = best_algorithm[1]
+    hypothesis = best_altorithm[3]
+    y_predicted = predict(x, hypothesis)
+    error = root_mean_square_error(un_normalize_hold_out_y, un_normalize_y_predicted)
+
+
 training_dataset = "data/deficit_train.dat"
 validation_dataset = "data/deficit_test.dat"
 
@@ -109,6 +131,10 @@ training_x_scalar, training_x_normalized = normalize(training_x)
 training_y_scalar, training_y_normalized = normalize(training_y)
 validation_x_scalar, validation_x_normalized = normalize(validation_x)
 validation_y_scalar, validation_y_normalized = normalize(validation_y)
+
+plot_data_x = data_for_hypothesis_curve(training_x)
+plot_data_x_scalar, plot_data_x_normalized = normalize(plot_data_x)
+
 
 folds = 6 # Split the training data into folds to use as mini testing data
 my_lambda = [0, math.exp(-25), math.exp(-20), math.exp(-14),
@@ -127,31 +153,29 @@ for degree in range(13):
             # training_data_x = numpy.setdiff1d(training_x, hold_out_test_x)
 
             indexes_to_del = indexes_of_data(hold_out_test_x, fold_n * folds)
-            
             training_data_x = numpy.delete(training_x_normalized, indexes_to_del)
             training_data_y = numpy.delete(training_y_normalized, indexes_to_del)
-            training_x_features = x_data_in_polynomial_matrix(training_x_normalized, degree)
-            weights = fit(training_x_features, training_y_normalized, _lambda)
 
-            # cv_test_data_x , cv_test_data_y =
+            hypothesis = fit(training_data_x, training_data_y, degree, _lambda)
+            y_predicted = predict(hold_out_test_x, hypothesis)
+
             un_normalize_hold_out_x = un_normalize(hold_out_test_x, training_x_scalar)
             un_normalize_hold_out_y = un_normalize(hold_outs_y[fold_n], training_y_scalar)
-            hold_out_data_x_features =  x_data_in_polynomial_matrix(un_normalize_hold_out_x, degree)
-            un_normalize_weights = un_normalize(weights, training_x_scalar)
-            y_predicted = predict(hold_out_data_x_features, un_normalize_weights)
-            error = root_mean_square_error(un_normalize_hold_out_y, y_predicted)
+            un_normalize_y_predicted = un_normalize(y_predicted, training_y_scalar)
+            error = root_mean_square_error(un_normalize_hold_out_y, un_normalize_y_predicted)
             average_error_list.append(error)
-            # print("For lambda:", _lambda, "Error (rmse)", error)
 
-        
+            plot_data_y_predicted = predict(plot_data_x_normalized, hypothesis)
+            plot_data_y_predicted_un_normalized = un_normalize(plot_data_y_predicted, training_y_scalar)
+            # plot_this(un_normalize_hold_out_x, un_normalize_hold_out_y, 
+            #           plot_data_x, plot_data_y_predicted_un_normalized, degree)
+
         average_error = sum(average_error_list) / len(average_error_list)
-        totals.append([degree, _lambda, average_error])
+        totals.append([degree, _lambda, average_error, hypothesis])
 
-    # plot_this(un_normalize_hold_out_x, un_normalize_hold_out_y, un_normalize_weights, degree)
+    # plot_this(un_normalize_hold_out_x, un_normalize_hold_out_y, hypothesis, degree)
 
-numpy_array_of_totals = numpy.array(totals)
-min_error = numpy.amin(numpy_array_of_totals, axis=0)
-what_be_here = numpy_array_of_totals[:,2]
-indexes_of_minimums = numpy.where(numpy_array_of_totals[:,2] == min_error)
+best_algorithm = best_algorithm_from_results(totals)
 
-print("Min Error:", min_error[2])
+error_on_test_data(validation_x_normalized, validation_y_normalized, 
+                   validation_x_scalar, validation_y_scalar, best_algorithm)
