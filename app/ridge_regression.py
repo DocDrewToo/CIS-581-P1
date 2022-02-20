@@ -84,8 +84,14 @@ def normalize(_data, type="int"):
     return scaler, single_numpy_array
 
 def un_normalize(_data, scalar):
-    un_normalized_data = scalar.inverse_transform(_data)
-    return un_normalized_data
+    un_normalized_data = scalar.inverse_transform(_data.reshape(-1, 1))
+
+    normal_array = []
+    for value in un_normalized_data:
+        normal_array.append(value[0])
+    single_numpy_array = numpy.array(normal_array)
+
+    return single_numpy_array
 
 def indexes_of_data(data, start_index):
     indexes = []
@@ -108,10 +114,13 @@ folds = 6 # Split the training data into folds to use as mini testing data
 my_lambda = [0, math.exp(-25), math.exp(-20), math.exp(-14),
    math.exp(-7), math.exp(-3), 1, math.exp(3), math.exp(7)]
 
+totals = []
 for degree in range(13):
-    print("For degree:", degree)
+    breakPoint = []
+    # print("For degree:", degree)
     for _lambda in my_lambda:
 
+        average_error_list = []
         hold_outs_x , hold_outs_y = seperate_to_folds(training_x_normalized, training_y_normalized, folds)
         for fold_n, hold_out_test_x  in enumerate(hold_outs_x):
             # Remove the hold_out[index] test data from the overall training data set
@@ -125,9 +134,24 @@ for degree in range(13):
             weights = fit(training_x_features, training_y_normalized, _lambda)
 
             # cv_test_data_x , cv_test_data_y =
-            hold_out_data_x_features =  x_data_in_polynomial_matrix(hold_out_test_x, degree)
-            y_predicted = predict(hold_out_data_x_features, weights)
-            error = root_mean_square_error(hold_outs_y[fold_n], y_predicted)
+            un_normalize_hold_out_x = un_normalize(hold_out_test_x, training_x_scalar)
+            un_normalize_hold_out_y = un_normalize(hold_outs_y[fold_n], training_y_scalar)
+            hold_out_data_x_features =  x_data_in_polynomial_matrix(un_normalize_hold_out_x, degree)
+            un_normalize_weights = un_normalize(weights, training_x_scalar)
+            y_predicted = predict(hold_out_data_x_features, un_normalize_weights)
+            error = root_mean_square_error(un_normalize_hold_out_y, y_predicted)
+            average_error_list.append(error)
+            # print("For lambda:", _lambda, "Error (rmse)", error)
+
         
-            print("For lambda:", _lambda, "Error (rmse)", error)
-            plot_this(hold_out_test_x, hold_outs_y[fold_n], weights, degree)
+        average_error = sum(average_error_list) / len(average_error_list)
+        totals.append([degree, _lambda, average_error])
+
+    # plot_this(un_normalize_hold_out_x, un_normalize_hold_out_y, un_normalize_weights, degree)
+
+numpy_array_of_totals = numpy.array(totals)
+min_error = numpy.amin(numpy_array_of_totals, axis=0)
+what_be_here = numpy_array_of_totals[:,2]
+indexes_of_minimums = numpy.where(numpy_array_of_totals[:,2] == min_error)
+
+print("Min Error:", min_error[2])
