@@ -63,16 +63,6 @@ def root_mean_square_error(y_orig, y_predicted):
     return rmse
 
 
-def plot_this(actual_x, actual_y, curve_x, predeticted_curve_y, _degree):
-    # Raw Data
-    plot.style.use('fivethirtyeight')
-    plot.title("Degree:" + str(_degree))
-    plot.scatter(actual_x, actual_y, color='black')
-
-    plot.plot(curve_x, predeticted_curve_y)
-    plot.show()
-
-
 def normalize(_data, type="int"):
     scaler = StandardScaler()
     scaler.fit(_data.reshape(-1, 1))
@@ -125,7 +115,7 @@ def lowest_error_per_degree(_totals, _degree):
 
 def error_on_test_data(x, y, x_scalar, y_scalar, best_algorithm):
     _degree = best_algorithm[0][0]
-    # _lambda = best_algorithm[0][1]
+    _lambda = best_algorithm[0][1]
     hypothesis = best_algorithm[0][3]
     y_predicted = predict(x, hypothesis, _degree)
 
@@ -136,9 +126,69 @@ def error_on_test_data(x, y, x_scalar, y_scalar, best_algorithm):
 
     plot_data_y_predicted = predict(plot_data_x_normalized, hypothesis, _degree)
     plot_data_y_predicted_un_normalized = un_normalize(plot_data_y_predicted, y_scalar)
-    plot_this(x_un_normalized, y_un_normalized, 
-          plot_data_x, plot_data_y_predicted_un_normalized, _degree)
+    plot_test_data(x_un_normalized, y_un_normalized, 
+          plot_data_x, plot_data_y_predicted_un_normalized, _degree, _lambda)
     return error
+
+
+def plot_test_data(actual_x, actual_y, curve_x, predeticted_curve_y, _degree, _lambda):
+    plot.title("National Deficit - Test Results with optimized model")
+    plot.scatter(actual_x, actual_y, color='black')
+
+    my_label = "D:" + str(_degree)
+    plot.plot(curve_x, predeticted_curve_y, label=my_label)
+    plot.legend(loc="upper left")
+    plot.xlabel("Year")
+    plot.ylabel("Deficit (Billions)")
+    plot.show
+    plot.savefig("Validation_w_Optimized_model.png", dpi=480)
+    plot.clf()
+
+
+def plot_all_itterations(_totals):
+    plot.title("National Deficit - All Degrees")
+    for _degree in range(13):
+        lowest_error = lowest_error_per_degree(_totals, _degree)
+        hypotheses_for_this_lambda = lowest_error[0][3]
+        best_lambda = lowest_error[0][1]
+        plot_data_y_predicted = predict(plot_data_x_normalized, hypotheses_for_this_lambda, _degree)
+        plot_data_y_predicted_un_normalized = un_normalize(plot_data_y_predicted, training_y_scalar)
+       
+        my_label = "D:" + str(_degree)
+        plot.scatter(training_x, training_y, color='black')
+        plot.plot(plot_data_x, plot_data_y_predicted_un_normalized, label=my_label)
+    plot.xlabel("Year")
+    plot.ylabel("Deficit (Billions)")
+    plot.legend(loc="lower left")
+    plot.savefig("Training_All_Degrees.png", dpi=480)
+    plot.show
+    plot.clf()
+
+def plot_all_lambda_for_d_12(_totals):
+    plot.title("National Deficit - D12 - All Lambdas")
+
+    numpy_array_of_totals = numpy.array(_totals, dtype=object)
+    degree_column = numpy_array_of_totals[:,0]
+    indexes_of_degree = numpy.where(degree_column == 12)
+    results_degree_12_matrix = numpy_array_of_totals[indexes_of_degree]
+
+    for results in results_degree_12_matrix:
+        degree = results[0]
+        _lambda = results[1] 
+        _hypotheses = results[3]
+        plot_data_y_predicted = predict(plot_data_x_normalized, _hypotheses, degree)
+        plot_data_y_predicted_un_normalized = un_normalize(plot_data_y_predicted, training_y_scalar)
+       
+        my_label = "D: " + str(degree) + " Lambda: " + str(_lambda)
+        plot.scatter(training_x, training_y, color='black')
+        plot.plot(plot_data_x, plot_data_y_predicted_un_normalized, label=my_label)
+
+    plot.xlabel("Year")
+    plot.ylabel("Deficit (Billions)")
+    plot.legend(loc="lower left")
+    plot.savefig("Lambda_For_D12.png", dpi=480)
+    plot.show
+    plot.clf()
 
 
 training_dataset = "data/deficit_train.dat"
@@ -157,15 +207,14 @@ plot_data_x_scalar, plot_data_x_normalized = normalize(plot_data_x)
 
 
 folds = 6 # Split the training data into folds to use as mini testing data
-my_lambda = [0, math.exp(-25), math.exp(-20), math.exp(-14),
-   math.exp(-7), math.exp(-3), 1, math.exp(3), math.exp(7)]
 
 totals = []
 for degree in range(13):
-    breakPoint = []
-    # print("For degree:", degree)
+    my_lambda = [0]
+    if degree == 12:
+        my_lambda = [0, math.exp(-25), math.exp(-20), math.exp(-14),
+                     math.exp(-7), math.exp(-3), 1, math.exp(3), math.exp(7)]
     for _lambda in my_lambda:
-
         average_error_list = []
         hold_outs_x , hold_outs_y = seperate_to_folds(training_x_normalized, training_y_normalized, folds)
         for fold_n, hold_out_test_x  in enumerate(hold_outs_x):
@@ -189,18 +238,18 @@ for degree in range(13):
         average_error = sum(average_error_list) / len(average_error_list)
         totals.append([degree, _lambda, average_error, hypothesis])
 
-    best_lambda_hypothesis = lowest_error_per_degree(totals, degree)
-    hypotheses_for_this_lambda = best_lambda_hypothesis[0][3]
-    plot_data_y_predicted = predict(plot_data_x_normalized, hypotheses_for_this_lambda, degree)
-    plot_data_y_predicted_un_normalized = un_normalize(plot_data_y_predicted, training_y_scalar)
-    # plot_this(un_normalize_hold_out_x, un_normalize_hold_out_y, 
-    #           plot_data_x, plot_data_y_predicted_un_normalized, degree)
-    plot_this(un_normalize_hold_out_x, un_normalize_hold_out_y, hypotheses_for_this_lambda, degree)
 
+plot_all_itterations(totals)
+
+plot_all_lambda_for_d_12(totals)
+
+print("__ALL TOTALS__")
+print(totals)
+print("______________")
 lowest_overall_error = lowest_error(totals)
 print("The Winner!", lowest_overall_error)
 
 testing_error = error_on_test_data(validation_x_normalized, validation_y_normalized, 
-                   validation_x_scalar, validation_y_scalar, lowest_error)
+                   validation_x_scalar, validation_y_scalar, lowest_overall_error)
 
 print("Error on test data:", testing_error)
