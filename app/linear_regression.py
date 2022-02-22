@@ -4,6 +4,7 @@ from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 import matplotlib.pyplot as plot
 from sklearn.metrics import mean_squared_error
 import math
+from data_processing import the_data
 
 def read_data_to_x_y_arrays(input_data_file_name):    
     x_axis = []
@@ -152,7 +153,7 @@ def plot_all_itterations(_totals):
         hypotheses_for_this_lambda = lowest_error[0][3]
         best_lambda = lowest_error[0][1]
         plot_data_y_predicted = predict(plot_data_x_normalized, hypotheses_for_this_lambda, _degree)
-        plot_data_y_predicted_un_normalized = un_normalize(plot_data_y_predicted, training_y_scalar)
+        plot_data_y_predicted_un_normalized = un_normalize(plot_data_y_predicted)
        
         my_label = "D:" + str(_degree)
         plot.scatter(training_x, training_y, color='black')
@@ -177,7 +178,7 @@ def plot_all_lambda_for_d_12(_totals):
         _lambda = results[1] 
         _hypotheses = results[3]
         plot_data_y_predicted = predict(plot_data_x_normalized, _hypotheses, degree)
-        plot_data_y_predicted_un_normalized = un_normalize(plot_data_y_predicted, training_y_scalar)
+        plot_data_y_predicted_un_normalized = un_normalize(plot_data_y_predicted)
        
         my_label = "D: " + str(degree) + " Lambda: " + str(_lambda)
         plot.scatter(training_x, training_y, color='black')
@@ -197,59 +198,59 @@ validation_dataset = "data/deficit_test.dat"
 training_x , training_y = read_data_to_x_y_arrays(training_dataset)
 validation_x , validation_y = read_data_to_x_y_arrays(validation_dataset)
 
-training_x_scalar, training_x_normalized = normalize(training_x)
-training_y_scalar, training_y_normalized = normalize(training_y)
-validation_x_scalar, validation_x_normalized = normalize(validation_x)
-validation_y_scalar, validation_y_normalized = normalize(validation_y)
+x_training   = the_data(training_x)
+y_training   = the_data(training_y)
+x_validation = the_data(validation_x)
+y_validation = the_data(validation_y)
 
-plot_data_x = data_for_hypothesis_curve(training_x)
-plot_data_x_scalar, plot_data_x_normalized = normalize(plot_data_x)
+# plot_data_x = data_for_hypothesis_curve(training_x)
+# plot_data_x_scalar, plot_data_x_normalized = normalize(plot_data_x)
 
 
-folds = 6 # Split the training data into folds to use as mini testing data
+# folds = 6 # Split the training data into folds to use as mini testing data
 
-totals = []
-for degree in range(13):
-    my_lambda = [0]
-    if degree == 12:
-        my_lambda = [0, math.exp(-25), math.exp(-20), math.exp(-14),
-                     math.exp(-7), math.exp(-3), 1, math.exp(3), math.exp(7)]
-    for _lambda in my_lambda:
-        average_error_list = []
-        hold_outs_x , hold_outs_y = seperate_to_folds(training_x_normalized, training_y_normalized, folds)
-        for fold_n, hold_out_test_x  in enumerate(hold_outs_x):
-            # Remove the hold_out[index] test data from the overall training data set
-            # training_data_x = numpy.setdiff1d(training_x, hold_out_test_x)
+# totals = []
+# for degree in range(13):
+#     my_lambda = [0]
+#     if degree == 12:
+#         my_lambda = [0, math.exp(-25), math.exp(-20), math.exp(-14),
+#                      math.exp(-7), math.exp(-3), 1, math.exp(3), math.exp(7)]
+#     for _lambda in my_lambda:
+#         average_error_list = []
+#         hold_outs_x , hold_outs_y = seperate_to_folds(x_training.normalized(), y_training.normalized(), folds)
+#         for fold_n, hold_out_test_x  in enumerate(hold_outs_x):
+#             # Remove the hold_out[index] test data from the overall training data set
+#             # training_data_x = numpy.setdiff1d(training_x, hold_out_test_x)
 
-            indexes_to_del = indexes_of_data(hold_out_test_x, fold_n * folds)
-            training_data_x = numpy.delete(training_x_normalized, indexes_to_del)
-            training_data_y = numpy.delete(training_y_normalized, indexes_to_del)
+#             indexes_to_del = indexes_of_data(hold_out_test_x, fold_n * folds)
+#             training_data_x = numpy.delete(x_training.normalized(), indexes_to_del)
+#             training_data_y = numpy.delete(y_training.normalized(), indexes_to_del)
 
-            hypothesis = fit(training_data_x, training_data_y, degree, _lambda)
-            y_predicted = predict(hold_out_test_x, hypothesis, degree)
+#             hypothesis = fit(training_data_x, training_data_y, degree, _lambda)
+#             y_predicted = predict(hold_out_test_x, hypothesis, degree)
 
-            un_normalize_hold_out_x = un_normalize(hold_out_test_x, training_x_scalar)
-            un_normalize_hold_out_y = un_normalize(hold_outs_y[fold_n], training_y_scalar)
-            un_normalize_y_predicted = un_normalize(y_predicted, training_y_scalar)
-            error = root_mean_square_error(un_normalize_hold_out_y, un_normalize_y_predicted)
-            average_error_list.append(error)
+#             un_normalize_hold_out_x = un_normalize(hold_out_test_x)
+#             un_normalize_hold_out_y = un_normalize(hold_outs_y[fold_n])
+#             un_normalize_y_predicted = un_normalize(y_predicted)
+#             error = root_mean_square_error(un_normalize_hold_out_y, un_normalize_y_predicted)
+#             average_error_list.append(error)
    
-        hypothesis = fit(training_x_normalized, training_y_normalized, degree, _lambda)
-        average_error = sum(average_error_list) / len(average_error_list)
-        totals.append([degree, _lambda, average_error, hypothesis])
+#         hypothesis = fit(x_training.normalized(), y_training.normalized(), degree, _lambda)
+#         average_error = sum(average_error_list) / len(average_error_list)
+#         totals.append([degree, _lambda, average_error, hypothesis])
 
 
-plot_all_itterations(totals)
+# plot_all_itterations(totals)
 
-plot_all_lambda_for_d_12(totals)
+# plot_all_lambda_for_d_12(totals)
 
-print("__ALL TOTALS__")
-print(totals)
-print("______________")
-lowest_overall_error = lowest_error(totals)
-print("The Winner!", lowest_overall_error)
+# print("__ALL TOTALS__")
+# print(totals)
+# print("______________")
+# lowest_overall_error = lowest_error(totals)
+# print("The Winner!", lowest_overall_error)
 
-testing_error = error_on_test_data(validation_x_normalized, validation_y_normalized, 
-                   validation_x_scalar, validation_y_scalar, lowest_overall_error)
+# testing_error = error_on_test_data(x_validation.normalized(), y_validation.normalized(), 
+#                      lowest_overall_error)
 
-print("Error on test data:", testing_error)
+# print("Error on test data:", testing_error)
