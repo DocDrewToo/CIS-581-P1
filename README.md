@@ -6,10 +6,20 @@ pip install scikit-learn
 pip install numpy
 pip install matplotlib
 ```
+* Uses Poetry as the python virtual environment
+Insallation instructions: https://python-poetry.org/docs/
 
+
+To run the code leveraging poetry commands
+------------
+* To Run a python program  
+  `poetry run my_python_app.py`
+  
+* To add a repository to poetry.  
+  `poetry add <repo-name>`
+  
 # Execute main program
 python linear_regression.py
-
 
 # Input requirements
 /data/deficit_test.dat
