@@ -4,6 +4,7 @@ from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 import matplotlib.pyplot as plot
 from sklearn.metrics import mean_squared_error
 import math
+import pprint
 
 def read_data_to_x_y_arrays(input_data_file_name):    
     x_axis = []
@@ -62,8 +63,20 @@ def root_mean_square_error(y_orig, y_predicted):
     rmse = math.sqrt(mse)
     return rmse
 
+def normalize_w_scalar(_data, _scaler):
+    normalized_data = _scaler.transform(_data.reshape(-1, 1))
 
-def normalize(_data, type="int"):
+    normal_array = []
+    for value in normalized_data:
+        normal_array.append(value[0])
+    single_numpy_array = numpy.array(normal_array)
+
+    average = numpy.average(single_numpy_array)
+    standard_deviation = numpy.std(single_numpy_array)
+
+    return single_numpy_array
+
+def normalize(_data):
     scaler = StandardScaler()
     scaler.fit(_data.reshape(-1, 1))
     normalized_data = scaler.transform(_data.reshape(-1, 1))
@@ -197,8 +210,6 @@ validation_dataset = "data/deficit_test.dat"
 training_x , training_y = read_data_to_x_y_arrays(training_dataset)
 validation_x , validation_y = read_data_to_x_y_arrays(validation_dataset)
 
-training_x_scalar, training_x_normalized = normalize(training_x)
-training_y_scalar, training_y_normalized = normalize(training_y)
 validation_x_scalar, validation_x_normalized = normalize(validation_x)
 validation_y_scalar, validation_y_normalized = normalize(validation_y)
 
@@ -216,24 +227,27 @@ for degree in range(13):
                      math.exp(-7), math.exp(-3), 1, math.exp(3), math.exp(7)]
     for _lambda in my_lambda:
         average_error_list = []
-        hold_outs_x , hold_outs_y = seperate_to_folds(training_x_normalized, training_y_normalized, folds)
+        hold_outs_x , hold_outs_y = seperate_to_folds(training_x, training_y, folds)
         for fold_n, hold_out_test_x  in enumerate(hold_outs_x):
             # Remove the hold_out[index] test data from the overall training data set
             # training_data_x = numpy.setdiff1d(training_x, hold_out_test_x)
 
             indexes_to_del = indexes_of_data(hold_out_test_x, fold_n * folds)
-            training_data_x = numpy.delete(training_x_normalized, indexes_to_del)
-            training_data_y = numpy.delete(training_y_normalized, indexes_to_del)
+            training_data_x = numpy.delete(training_x, indexes_to_del)
+            training_data_y = numpy.delete(training_y, indexes_to_del)
 
-            hypothesis = fit(training_data_x, training_data_y, degree, _lambda)
-            y_predicted = predict(hold_out_test_x, hypothesis, degree)
+            training_x_scalar, training_x_normalized = normalize(training_data_x)
+            training_y_scalar, training_y_normalized = normalize(training_data_y)
 
-            un_normalize_hold_out_x = un_normalize(hold_out_test_x, training_x_scalar)
-            un_normalize_hold_out_y = un_normalize(hold_outs_y[fold_n], training_y_scalar)
-            un_normalize_y_predicted = un_normalize(y_predicted, training_y_scalar)
-            error = root_mean_square_error(un_normalize_hold_out_y, un_normalize_y_predicted)
+            hypothesis = fit(training_x_normalized, training_y_normalized, degree, _lambda)
+
+            hold_out_test_x_normalized = normalize_w_scalar(hold_out_test_x, training_x_scalar)
+            y_predicted_normalized = predict(hold_out_test_x_normalized, hypothesis, degree)
+
+            un_normalize_y_predicted = un_normalize(y_predicted_normalized, training_y_scalar)
+            error = root_mean_square_error(hold_outs_y[fold_n], un_normalize_y_predicted)
             average_error_list.append(error)
-   
+   #matplot lib
         hypothesis = fit(training_x_normalized, training_y_normalized, degree, _lambda)
         average_error = sum(average_error_list) / len(average_error_list)
         totals.append([degree, _lambda, average_error, hypothesis])
@@ -244,7 +258,8 @@ plot_all_itterations(totals)
 plot_all_lambda_for_d_12(totals)
 
 print("__ALL TOTALS__")
-print(totals)
+pp = pprint.PrettyPrinter(indent=4)
+print(pp.pprint(totals))
 print("______________")
 lowest_overall_error = lowest_error(totals)
 print("The Winner!", lowest_overall_error)
