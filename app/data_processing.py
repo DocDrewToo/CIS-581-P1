@@ -2,17 +2,16 @@ from sklearn.preprocessing import StandardScaler
 import numpy
 
 class the_data():
-    def __init__(self, x_data, y_data, folds=0):
-        self.x_data = x_data
-        self.y_data = y_data
+    def __init__(self, data, folds=0):
+        self.data = data
         self.folds = folds
-
+        self.normalize()
 
     def __call__(self):
         return True
 
 
-    def normalized(self, optional_data=""):
+    def normalize(self):
         try:
             normalized_data = self.normalized_data
         except AttributeError:
@@ -27,22 +26,20 @@ class the_data():
 
             self.normalized_data = normalized_data
             self.scaler = scaler
-        # average = numpy.average(normalized_data)
-        # standard_deviation = numpy.std(normalized_data)
+            # average = numpy.average(normalized_data)
+            # standard_deviation = numpy.std(normalized_data)
         return normalized_data
 
     def un_normalize(self):
-        self.normalized(self.data)
+        self.normalize()
         try:
             un_normalized_data = self.un_normalized_data
         except AttributeError:
-            inverse_transform = self.scalar.inverse_transform(self.data.reshape(-1, 1))
+            inverse_transform = self.scaler.inverse_transform(self.data.reshape(-1, 1))
             output_array = []
             for value in inverse_transform:
                 output_array.append(value[0])
             un_normalized_data = numpy.array(output_array)
-
-            self.un_normalized_data = un_normalized_data
 
         return un_normalized_data
 
